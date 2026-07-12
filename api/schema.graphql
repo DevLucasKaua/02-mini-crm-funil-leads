@@ -1,0 +1,36 @@
+type Lead {
+  id: ID!
+  name: String!
+  area: String!
+  source: String!
+  stage: String!
+  estimatedValue: Float!
+  phone: String!
+  createdAt: String!
+  stageChangedAt: String!
+  notes: String
+}
+
+type StageCount {
+  stage: String!
+  count: Int!
+}
+
+type SourceCount {
+  source: String!
+  count: Int!
+}
+
+type FunnelMetrics {
+  totalLeads: Int!
+  stageCounts: [StageCount!]!
+  conversionRate: Float!
+  valueInNegotiation: Float!
+  leadsBySource: [SourceCount!]!
+  avgDaysToClose: Float
+}
+
+type Query {
+  funnelMetrics: FunnelMetrics!
+  lead(id: ID!): Lead
+}
