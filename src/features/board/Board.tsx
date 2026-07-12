@@ -18,11 +18,13 @@ import {
 import { STAGES, STAGE_LABELS, type Lead, type Stage } from '../../lib/types';
 import { useLeadsQuery } from './useLeadsQuery';
 import { useMoveLeadMutation } from './useMoveLeadMutation';
+import { useLeadFilters } from './useLeadFilters';
 import { boardKeyboardCoordinates } from './keyboard-coordinates';
 import { Column } from './Column';
 import { LeadCard } from './LeadCard';
 import { ColumnSkeleton } from './ColumnSkeleton';
 import { BoardError } from './BoardError';
+import { Button } from '../../components/ui';
 
 interface BoardProps {
   onSelectLead: (lead: Lead) => void;
@@ -37,12 +39,15 @@ export function Board({ onSelectLead }: BoardProps) {
   const { data: leads, isPending, isError, refetch } = useLeadsQuery();
   const moveLead = useMoveLeadMutation();
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
+  const { applyFilters, hasActiveFilters, clearFilters } = useLeadFilters();
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: boardKeyboardCoordinates }),
   );
+
+  const filteredLeads = useMemo(() => applyFilters(leads ?? []), [applyFilters, leads]);
 
   const leadsByStage = useMemo(() => {
     const groups: Record<Stage, Lead[]> = {
@@ -51,11 +56,11 @@ export function Board({ onSelectLead }: BoardProps) {
       reuniao: [],
       fechado: [],
     };
-    for (const lead of leads ?? []) {
+    for (const lead of filteredLeads) {
       groups[lead.stage].push(lead);
     }
     return groups;
-  }, [leads]);
+  }, [filteredLeads]);
 
   const findLead = (id: UniqueIdentifier | undefined) =>
     id == null ? undefined : (leads ?? []).find((lead) => lead.id === id);
@@ -136,6 +141,14 @@ export function Board({ onSelectLead }: BoardProps) {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
+      {hasActiveFilters && (leads?.length ?? 0) > 0 && filteredLeads.length === 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500">
+          <span>Nenhum lead corresponde aos filtros.</span>
+          <Button variant="ghost" onClick={clearFilters}>
+            Limpar filtros
+          </Button>
+        </div>
+      )}
       <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto py-4 md:grid md:grid-cols-4 md:overflow-visible">
         {STAGES.map((stage) => (
           <Column
